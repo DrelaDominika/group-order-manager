@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="GroupOrderManager.Api/GroupOrderManager.Api.csproj" />
+  <Project Path="GroupOrderManager.Application/GroupOrderManager.Application.csproj" />
+  <Project Path="GroupOrderManager.Domain/GroupOrderManager.Domain.csproj" />
+  <Project Path="GroupOrderManager.Infrastructure/GroupOrderManager.Infrastructure.csproj" />
+  <Project Path="GroupOrderManager.Tests/GroupOrderManager.Tests.csproj" />
+</Solution>
