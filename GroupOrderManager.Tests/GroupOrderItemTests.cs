@@ -69,4 +69,12 @@ public class GroupOrderItemTests
         Assert.Equal(10, item.QuantityClaimed);
         Assert.Throws<InvalidOperationException>(() => item.ClaimFor(Guid.NewGuid(), 1));
     }
+
+    [Theory]
+    [InlineData(-1, 10)]
+    [InlineData(100, -1)]
+    public void Constructor_WhenPriceOrQuantityIsNegative_ThrowsArgumentException(decimal price, int quantityAvailable)
+    {
+        Assert.Throws<ArgumentException>(() => new GroupOrderItem(Guid.NewGuid(), "Album", price, quantityAvailable));
+    }
 }
