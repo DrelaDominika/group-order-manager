@@ -28,11 +28,12 @@ public class GroupOrderItem
 
     public bool CanClaim(int quantity) => QuantityClaimed + quantity <= QuantityAvailable;
 
-    public void Claim(int quantity)
+    public Claim ClaimFor(Guid participantId, int quantity)
     {
         if (!CanClaim(quantity))
             throw new InvalidOperationException("Not enough quantity available to claim.");
 
         QuantityClaimed += quantity;
+        return new Claim(participantId, Id, quantity);
     }
 }
