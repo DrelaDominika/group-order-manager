@@ -20,6 +20,9 @@ public class GroupOrder
         Description = description;
         Status = GroupOrderStatus.Open;
     }
+
+    private readonly List<GroupOrderItem> _items = new();
+    public IReadOnlyCollection<GroupOrderItem> Items => _items.AsReadOnly();
 }
 
 public enum GroupOrderStatus

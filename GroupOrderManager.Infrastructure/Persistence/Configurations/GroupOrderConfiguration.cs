@@ -20,5 +20,9 @@ public class GroupOrderConfiguration : IEntityTypeConfiguration<GroupOrder>
         builder.Property(o => o.Status)
             .HasConversion<string>()
             .HasMaxLength(20);
+
+        builder.HasMany(o => o.Items)
+            .WithOne()
+            .HasForeignKey(i => i.GroupOrderId);
     }
 }

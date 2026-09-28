@@ -72,6 +72,13 @@ app.MapPost("/items/{itemId}/claims", async (Guid itemId, ClaimItemRequest reque
 })
 .WithName("ClaimItem");
 
+app.MapGet("/group-orders/{id}", async (Guid id, IGroupOrderService service) =>
+{
+    var order = await service.GetByIdAsync(id);
+    return order is null ? Results.NotFound() : Results.Ok(order);
+})
+.WithName("GetGroupOrder");
+
 app.Run();
 
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)

@@ -1,6 +1,7 @@
 using GroupOrderManager.Application.GroupOrders;
 using GroupOrderManager.Domain;
 using GroupOrderManager.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace GroupOrderManager.Infrastructure.Services;
 
@@ -21,5 +22,23 @@ public class GroupOrderService : IGroupOrderService
         await _dbContext.SaveChangesAsync();
 
         return groupOrder.Id;
+    }
+
+    public async Task<GroupOrderDetailsResponse?> GetByIdAsync(Guid id)
+    {
+        var groupOrder = await _dbContext.GroupOrders
+            .Include(o => o.Items)
+            .FirstOrDefaultAsync(o => o.Id == id);
+
+        if (groupOrder is null)
+            return null;
+
+        return new GroupOrderDetailsResponse(
+            groupOrder.Id,
+            groupOrder.Title,
+            groupOrder.Description,
+            groupOrder.Deadline,
+            groupOrder.Status.ToString(),
+            groupOrder.Items.Select(i => new GroupOrderItemResponse(i.Id, i.Name, i.Price, i.QuantityAvailable, i.QuantityClaimed)).ToList());
     }
 }
