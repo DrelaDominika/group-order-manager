@@ -25,4 +25,24 @@ public class ClaimService : IClaimService
 
         return claim.Id;
     }
+
+    public async Task MarkAsPaidAsync(Guid claimId)
+    {
+        var claim = await _dbContext.Claims.FindAsync(claimId);
+        if (claim is null)
+            throw new InvalidOperationException($"Claim {claimId} does not exist.");
+
+        claim.MarkAsPaid();
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task MarkAsUnpaidAsync(Guid claimId)
+    {
+        var claim = await _dbContext.Claims.FindAsync(claimId);
+        if (claim is null)
+            throw new InvalidOperationException($"Claim {claimId} does not exist.");
+
+        claim.MarkAsUnpaid();
+        await _dbContext.SaveChangesAsync();
+    }
 }

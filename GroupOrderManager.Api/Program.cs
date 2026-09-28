@@ -79,6 +79,20 @@ app.MapGet("/group-orders/{id}", async (Guid id, IGroupOrderService service) =>
 })
 .WithName("GetGroupOrder");
 
+app.MapPatch("/claims/{id}/paid", async (Guid id, IClaimService service) =>
+{
+    await service.MarkAsPaidAsync(id);
+    return Results.NoContent();
+})
+.WithName("MarkClaimPaid");
+
+app.MapPatch("/claims/{id}/unpaid", async (Guid id, IClaimService service) =>
+{
+    await service.MarkAsUnpaidAsync(id);
+    return Results.NoContent();
+})
+.WithName("MarkClaimUnpaid");
+
 app.Run();
 
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
