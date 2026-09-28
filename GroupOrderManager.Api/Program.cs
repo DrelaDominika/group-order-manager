@@ -1,10 +1,14 @@
+using GroupOrderManager.Application.GroupOrders;
 using GroupOrderManager.Infrastructure.Persistence;
+using GroupOrderManager.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<GomDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("GomDatabase")));
+
+builder.Services.AddScoped<IGroupOrderService, GroupOrderService>();
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -25,19 +29,12 @@ var summaries = new[]
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
 };
 
-app.MapGet("/weatherforecast", () =>
+app.MapPost("/group-orders", async (CreateGroupOrderRequest request, IGroupOrderService service) =>
 {
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
+    var id = await service.CreateAsync(request);
+    return Results.Created($"/group-orders/{id}", new { id });
 })
-.WithName("GetWeatherForecast");
+.WithName("CreateGroupOrder");
 
 app.Run();
 
