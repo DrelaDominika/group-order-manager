@@ -1,3 +1,4 @@
+using GroupOrderManager.Application.GroupOrderItems;
 using GroupOrderManager.Application.GroupOrders;
 using GroupOrderManager.Infrastructure.Persistence;
 using GroupOrderManager.Infrastructure.Services;
@@ -9,6 +10,7 @@ builder.Services.AddDbContext<GomDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("GomDatabase")));
 
 builder.Services.AddScoped<IGroupOrderService, GroupOrderService>();
+builder.Services.AddScoped<IGroupOrderItemService, GroupOrderItemService>();
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -35,6 +37,16 @@ app.MapPost("/group-orders", async (CreateGroupOrderRequest request, IGroupOrder
     return Results.Created($"/group-orders/{id}", new { id });
 })
 .WithName("CreateGroupOrder");
+
+app.MapPost("/group-orders/{groupOrderId}/items", async (Guid groupOrderId, AddGroupOrderItemRequest request, IGroupOrderItemService service) =>
+{
+    if (groupOrderId != request.GroupOrderId)
+        return Results.BadRequest("Route groupOrderId does not match request body.");
+
+    var id = await service.AddAsync(request);
+    return Results.Created($"/group-orders/{groupOrderId}/items/{id}", new { id });
+})
+.WithName("AddGroupOrderItem");
 
 app.Run();
 
