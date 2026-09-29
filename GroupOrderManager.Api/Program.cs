@@ -93,6 +93,13 @@ app.MapPatch("/claims/{id}/unpaid", async (Guid id, IClaimService service) =>
 })
 .WithName("MarkClaimUnpaid");
 
+app.MapPatch("/group-orders/{id}/close", async (Guid id, IGroupOrderService service) =>
+{
+    await service.CloseAsync(id);
+    return Results.NoContent();
+})
+.WithName("CloseGroupOrder");
+
 app.Run();
 
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)

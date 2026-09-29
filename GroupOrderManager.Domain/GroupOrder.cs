@@ -23,6 +23,14 @@ public class GroupOrder
 
     private readonly List<GroupOrderItem> _items = new();
     public IReadOnlyCollection<GroupOrderItem> Items => _items.AsReadOnly();
+
+    public void Close()
+    {
+        if (Status == GroupOrderStatus.Closed)
+            throw new InvalidOperationException("GroupOrder is already closed.");
+
+        Status = GroupOrderStatus.Closed;
+    }
 }
 
 public enum GroupOrderStatus

@@ -41,4 +41,14 @@ public class GroupOrderService : IGroupOrderService
             groupOrder.Status.ToString(),
             groupOrder.Items.Select(i => new GroupOrderItemResponse(i.Id, i.Name, i.Price, i.QuantityAvailable, i.QuantityClaimed)).ToList());
     }
+
+    public async Task CloseAsync(Guid id)
+    {
+        var groupOrder = await _dbContext.GroupOrders.FindAsync(id);
+        if (groupOrder is null)
+            throw new InvalidOperationException($"GroupOrder {id} does not exist.");
+
+        groupOrder.Close();
+        await _dbContext.SaveChangesAsync();
+    }
 }
