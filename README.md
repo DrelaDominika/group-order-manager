@@ -19,6 +19,8 @@ A REST API for coordinating group-buy orders end to end — built as a .NET 10 b
 - **ASP.NET Core Web API** (.NET 10, Minimal APIs)
 - **Entity Framework Core** + **PostgreSQL**
 - **xUnit** — 24 unit tests (domain logic + auth service, using EF Core's in-memory provider)
+- **Docker & Docker Compose** — containerized API + Postgres, runs with a single `docker compose up`
+- **GitHub Actions CI** — restores, builds, and runs all 24 tests on every push
 - **JWT Bearer authentication** (HMAC-SHA256)
 
 ## Architecture
@@ -100,6 +102,6 @@ Key architectural choices — aggregate root pattern, dependency inversion betwe
 ## Roadmap
 
 - [ ] Frontend (React/Next.js)
-- [ ] Docker Compose for full-stack local dev
-- [ ] CI/CD via GitHub Actions
+- [x] Docker Compose for full-stack local dev
+- [x] CI/CD via GitHub Actions
 - [ ] Deployment to AWS
