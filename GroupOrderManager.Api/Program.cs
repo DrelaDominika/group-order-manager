@@ -9,6 +9,7 @@ using GroupOrderManager.Application.Auth;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +23,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    options.MapInboundClaims = false;
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -58,12 +60,14 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapPost("/group-orders", async (CreateGroupOrderRequest request, IGroupOrderService service) =>
+app.MapPost("/group-orders", async (CreateGroupOrderRequest request, IGroupOrderService service, ClaimsPrincipal user) =>
 {
-    var id = await service.CreateAsync(request);
+    var ownerId = Guid.Parse(user.FindFirst("sub")!.Value);
+    var id = await service.CreateAsync(request, ownerId);
     return Results.Created($"/group-orders/{id}", new { id });
 })
-.WithName("CreateGroupOrder");
+.WithName("CreateGroupOrder")
+.RequireAuthorization();
 
 app.MapPost("/group-orders/{groupOrderId}/items", async (Guid groupOrderId, AddGroupOrderItemRequest request, IGroupOrderItemService service) =>
 {
@@ -73,7 +77,8 @@ app.MapPost("/group-orders/{groupOrderId}/items", async (Guid groupOrderId, AddG
     var id = await service.AddAsync(request);
     return Results.Created($"/group-orders/{groupOrderId}/items/{id}", new { id });
 })
-.WithName("AddGroupOrderItem");
+.WithName("AddGroupOrderItem")
+.RequireAuthorization();
 
 app.MapPost("/group-orders/{groupOrderId}/participants", async (Guid groupOrderId, AddParticipantRequest request, IParticipantService service) =>
 {
@@ -107,21 +112,24 @@ app.MapPatch("/claims/{id}/paid", async (Guid id, IClaimService service) =>
     await service.MarkAsPaidAsync(id);
     return Results.NoContent();
 })
-.WithName("MarkClaimPaid");
+.WithName("MarkClaimPaid")
+.RequireAuthorization();
 
 app.MapPatch("/claims/{id}/unpaid", async (Guid id, IClaimService service) =>
 {
     await service.MarkAsUnpaidAsync(id);
     return Results.NoContent();
 })
-.WithName("MarkClaimUnpaid");
+.WithName("MarkClaimUnpaid")
+.RequireAuthorization();
 
 app.MapPatch("/group-orders/{id}/close", async (Guid id, IGroupOrderService service) =>
 {
     await service.CloseAsync(id);
     return Results.NoContent();
 })
-.WithName("CloseGroupOrder");
+.WithName("CloseGroupOrder")
+.RequireAuthorization();
 
 app.MapGet("/group-orders/{id}/amount-owed", async (Guid id, IGroupOrderService service) =>
 {

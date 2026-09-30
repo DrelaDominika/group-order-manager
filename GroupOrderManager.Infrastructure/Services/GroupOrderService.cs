@@ -14,9 +14,9 @@ public class GroupOrderService : IGroupOrderService
         _dbContext = dbContext;
     }
 
-    public async Task<Guid> CreateAsync(CreateGroupOrderRequest request)
+    public async Task<Guid> CreateAsync(CreateGroupOrderRequest request, Guid ownerId)
     {
-        var groupOrder = new GroupOrder(request.OwnerId, request.Title, request.Deadline, request.Description);
+        var groupOrder = new GroupOrder(ownerId, request.Title, request.Deadline, request.Description);
 
         _dbContext.GroupOrders.Add(groupOrder);
         await _dbContext.SaveChangesAsync();

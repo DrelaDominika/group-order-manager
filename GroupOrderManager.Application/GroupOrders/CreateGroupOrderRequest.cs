@@ -1,3 +1,3 @@
 namespace GroupOrderManager.Application.GroupOrders;
 
-public record CreateGroupOrderRequest(Guid OwnerId, string Title, DateTime Deadline, string? Description);
+public record CreateGroupOrderRequest(string Title, DateTime Deadline, string? Description);
