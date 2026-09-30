@@ -5,11 +5,36 @@ using GroupOrderManager.Application.Participants;
 using GroupOrderManager.Infrastructure.Persistence;
 using GroupOrderManager.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
+using GroupOrderManager.Application.Auth;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<GomDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("GomDatabase")));
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+    };
+});
+
+builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<IGroupOrderService, GroupOrderService>();
 builder.Services.AddScoped<IGroupOrderItemService, GroupOrderItemService>();
@@ -19,6 +44,7 @@ builder.Services.AddScoped<IClaimService, ClaimService>();
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 var app = builder.Build();
 
@@ -29,11 +55,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapPost("/group-orders", async (CreateGroupOrderRequest request, IGroupOrderService service) =>
 {
@@ -107,9 +130,18 @@ app.MapGet("/group-orders/{id}/amount-owed", async (Guid id, IGroupOrderService 
 })
 .WithName("GetAmountOwed");
 
-app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+app.MapPost("/auth/register", async (RegisterRequest request, IAuthService authService) =>
 {
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+    var id = await authService.RegisterAsync(request);
+    return Results.Created($"/users/{id}", new { id });
+})
+.WithName("Register");
+
+app.MapPost("/auth/login", async (LoginRequest request, IAuthService authService) =>
+{
+    var response = await authService.LoginAsync(request);
+    return Results.Ok(response);
+})
+.WithName("Login");
+
+app.Run();

@@ -13,6 +13,7 @@ public class GomDbContext : DbContext
     public DbSet<GroupOrderItem> GroupOrderItems => Set<GroupOrderItem>();
     public DbSet<Participant> Participants => Set<Participant>();
     public DbSet<Claim> Claims => Set<Claim>();
+    public DbSet<User> Users => Set<User>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
