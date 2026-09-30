@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GroupOrderManager.Infrastructure.Migrations
 {
     [DbContext(typeof(GomDbContext))]
-    [Migration("20260930214313_AddUser")]
-    partial class AddUser
+    [Migration("20260930230653_SyncXminConcurrencyToken")]
+    partial class SyncXminConcurrencyToken
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -101,6 +101,12 @@ namespace GroupOrderManager.Infrastructure.Migrations
 
                     b.Property<int>("QuantityClaimed")
                         .HasColumnType("integer");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.HasKey("Id");
 

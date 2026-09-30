@@ -99,6 +99,12 @@ namespace GroupOrderManager.Infrastructure.Migrations
                     b.Property<int>("QuantityClaimed")
                         .HasColumnType("integer");
 
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("GroupOrderId");
