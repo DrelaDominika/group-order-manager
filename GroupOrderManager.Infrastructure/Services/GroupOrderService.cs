@@ -51,4 +51,18 @@ public class GroupOrderService : IGroupOrderService
         groupOrder.Close();
         await _dbContext.SaveChangesAsync();
     }
+
+    public async Task<List<ParticipantAmountOwedResponse>> GetAmountOwedAsync(Guid groupOrderId)
+    {
+        var result = await (
+            from claim in _dbContext.Claims
+            join item in _dbContext.GroupOrderItems on claim.GroupOrderItemId equals item.Id
+            join participant in _dbContext.Participants on claim.ParticipantId equals participant.Id
+            where item.GroupOrderId == groupOrderId
+            group item.Price * claim.Quantity by new { participant.Id, participant.Name } into g
+            select new ParticipantAmountOwedResponse(g.Key.Id, g.Key.Name, g.Sum())
+        ).ToListAsync();
+
+        return result;
+    }
 }

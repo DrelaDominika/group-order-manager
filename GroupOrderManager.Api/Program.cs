@@ -100,6 +100,13 @@ app.MapPatch("/group-orders/{id}/close", async (Guid id, IGroupOrderService serv
 })
 .WithName("CloseGroupOrder");
 
+app.MapGet("/group-orders/{id}/amount-owed", async (Guid id, IGroupOrderService service) =>
+{
+    var result = await service.GetAmountOwedAsync(id);
+    return Results.Ok(result);
+})
+.WithName("GetAmountOwed");
+
 app.Run();
 
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
