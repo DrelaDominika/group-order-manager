@@ -16,5 +16,11 @@ public class GroupOrderItemConfiguration : IEntityTypeConfiguration<GroupOrderIt
 
         builder.Property(i => i.Price)
             .HasColumnType("decimal(18,2)");
+
+        builder.Property<uint>("xmin")
+            .HasColumnName("xmin")
+            .HasColumnType("xid")
+            .ValueGeneratedOnAddOrUpdate()
+            .IsConcurrencyToken();
     }
 }

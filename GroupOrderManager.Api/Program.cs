@@ -95,8 +95,15 @@ app.MapPost("/items/{itemId}/claims", async (Guid itemId, ClaimItemRequest reque
     if (itemId != request.GroupOrderItemId)
         return Results.BadRequest("Route itemId does not match request body.");
 
-    var id = await service.ClaimAsync(request);
-    return Results.Created($"/items/{itemId}/claims/{id}", new { id });
+    try
+    {
+        var id = await service.ClaimAsync(request);
+        return Results.Created($"/items/{itemId}/claims/{id}", new { id });
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.Conflict(ex.Message);
+    }
 })
 .WithName("ClaimItem");
 
