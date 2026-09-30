@@ -1,3 +1,4 @@
+using GroupOrderManager.Application.Common.Exceptions;
 using GroupOrderManager.Application.GroupOrders;
 using GroupOrderManager.Domain;
 using GroupOrderManager.Infrastructure.Persistence;
@@ -42,11 +43,14 @@ public class GroupOrderService : IGroupOrderService
             groupOrder.Items.Select(i => new GroupOrderItemResponse(i.Id, i.Name, i.Price, i.QuantityAvailable, i.QuantityClaimed)).ToList());
     }
 
-    public async Task CloseAsync(Guid id)
+    public async Task CloseAsync(Guid id, Guid currentUserId)
     {
         var groupOrder = await _dbContext.GroupOrders.FindAsync(id);
-        if (groupOrder is null)
-            throw new InvalidOperationException($"GroupOrder {id} does not exist.");
+
+        // Same 404 whether the order doesn't exist or belongs to someone else,
+        // so the API never confirms that someone else's order exists.
+        if (groupOrder is null || groupOrder.OwnerId != currentUserId)
+            throw new NotFoundException($"GroupOrder {id} was not found.");
 
         groupOrder.Close();
         await _dbContext.SaveChangesAsync();
@@ -54,6 +58,10 @@ public class GroupOrderService : IGroupOrderService
 
     public async Task<List<ParticipantAmountOwedResponse>> GetAmountOwedAsync(Guid groupOrderId)
     {
+        var groupOrder = await _dbContext.GroupOrders.FindAsync(groupOrderId);
+        if (groupOrder is null)
+            throw new NotFoundException($"GroupOrder {groupOrderId} was not found.");
+
         var result = await (
             from claim in _dbContext.Claims
             join item in _dbContext.GroupOrderItems on claim.GroupOrderItemId equals item.Id

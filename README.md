@@ -7,20 +7,22 @@ A REST API for coordinating group-buy orders end to end — built as a .NET 10 b
 ## Features
 
 - **Owner authentication** — JWT-based auth for group order organizers (register/login, password hashing via PBKDF2)
-- **Group orders** — create, view, and close orders with a title, deadline, and description
+- **Ownership checks** — only an order's owner can add items, close it, or mark claims paid; anyone else gets a 404
+- **Group orders** — create, view, and close orders with a title, deadline, and description; closed orders reject new items, participants, and claims
 - **Items** — add items with price, quantity available, and deadline
 - **Anonymous participant claims** — participants claim items by name/contact info only, no account required
 - **Automatic amount-owed calculation** — computes what each participant owes across all their claims
 - **Payment tracking** — mark claims as paid/unpaid
-- **Optimistic concurrency control** — prevents overselling an item when two people claim the last unit at the same time
+- **Optimistic concurrency control** — prevents overselling an item when two people claim the last unit at the same time (the loser gets a 409 and can retry)
+- **Consistent error responses** — a global exception handler returns RFC 9457 ProblemDetails with the right status code (400 / 401 / 404 / 409)
 
 ## Tech Stack
 
 - **ASP.NET Core Web API** (.NET 10, Minimal APIs)
 - **Entity Framework Core** + **PostgreSQL**
-- **xUnit** — 24 unit tests (domain logic + auth service, using EF Core's in-memory provider)
+- **xUnit** — 44 tests: domain rules, plus service tests (auth, ownership, closed orders, claims) using EF Core's in-memory provider
 - **Docker & Docker Compose** — containerized API + Postgres, runs with a single `docker compose up`
-- **GitHub Actions CI** — restores, builds, and runs all 24 tests on every push
+- **GitHub Actions CI** — restores, builds, and runs all tests on every push
 - **JWT Bearer authentication** (HMAC-SHA256)
 
 ## Architecture
@@ -85,15 +87,15 @@ Business rules never depend on how they're persisted or exposed. `GroupOrderItem
 |---|---|---|---|
 | POST | `/auth/register` | — | Register a new owner account |
 | POST | `/auth/login` | — | Log in, returns a JWT |
-| POST | `/group-orders` | Owner | Create a group order |
+| POST | `/group-orders` | Logged in | Create a group order (you become its owner) |
 | GET | `/group-orders/{id}` | — | Get order details (shareable public link) |
-| PATCH | `/group-orders/{id}/close` | Owner | Close a group order |
-| POST | `/group-orders/{groupOrderId}/items` | Owner | Add an item to an order |
+| PATCH | `/group-orders/{id}/close` | Owner of the order | Close a group order |
+| POST | `/group-orders/{groupOrderId}/items` | Owner of the order | Add an item to an order |
 | POST | `/group-orders/{groupOrderId}/participants` | — | Add a participant |
 | POST | `/items/{itemId}/claims` | — | Claim an item (anonymous) |
 | GET | `/group-orders/{id}/amount-owed` | — | Get amount owed per participant |
-| PATCH | `/claims/{id}/paid` | Owner | Mark a claim as paid |
-| PATCH | `/claims/{id}/unpaid` | Owner | Mark a claim as unpaid |
+| PATCH | `/claims/{id}/paid` | Owner of the order | Mark a claim as paid |
+| PATCH | `/claims/{id}/unpaid` | Owner of the order | Mark a claim as unpaid |
 
 ## Design Decisions
 

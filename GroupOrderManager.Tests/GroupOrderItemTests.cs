@@ -19,16 +19,17 @@ public class GroupOrderItemTests
         Assert.Equal(3, claim.Quantity);
         Assert.Equal(participantId, claim.ParticipantId);
         Assert.Equal(item.Id, claim.GroupOrderItemId);
+        Assert.Equal(3, item.QuantityClaimed);
     }
 
     [Fact]
-    public void ClaimFor_WhenQuantityExceedsAvailable_ThrowsInvalidOperationException()
+    public void ClaimFor_WhenQuantityExceedsAvailable_ThrowsDomainException()
     {
         // Arrange
         var item = new GroupOrderItem(Guid.NewGuid(), "Album", 100m, 10);
 
         // Act & Assert
-        Assert.Throws<InvalidOperationException>(() => item.ClaimFor(Guid.NewGuid(), 11));
+        Assert.Throws<DomainException>(() => item.ClaimFor(Guid.NewGuid(), 11));
     }
 
     [Fact]
@@ -67,7 +68,20 @@ public class GroupOrderItemTests
         Assert.Equal(secondParticipantId, secondClaim.ParticipantId);
         Assert.Equal(item.Id, claim.GroupOrderItemId);
         Assert.Equal(10, item.QuantityClaimed);
-        Assert.Throws<InvalidOperationException>(() => item.ClaimFor(Guid.NewGuid(), 1));
+        Assert.Throws<DomainException>(() => item.ClaimFor(Guid.NewGuid(), 1));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    public void ClaimFor_WhenQuantityIsNotPositive_ThrowsAndLeavesQuantityClaimedUnchanged(int invalidQuantity)
+    {
+        // Arrange
+        var item = new GroupOrderItem(Guid.NewGuid(), "Album", 100m, 10);
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => item.ClaimFor(Guid.NewGuid(), invalidQuantity));
+        Assert.Equal(0, item.QuantityClaimed);
     }
 
     [Theory]

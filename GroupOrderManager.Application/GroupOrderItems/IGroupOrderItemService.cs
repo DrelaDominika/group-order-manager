@@ -2,5 +2,5 @@ namespace GroupOrderManager.Application.GroupOrderItems;
 
 public interface IGroupOrderItemService
 {
-    Task<Guid> AddAsync(AddGroupOrderItemRequest request);
+    Task<Guid> AddAsync(AddGroupOrderItemRequest request, Guid currentUserId);
 }

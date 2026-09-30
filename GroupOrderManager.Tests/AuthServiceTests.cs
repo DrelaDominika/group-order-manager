@@ -1,7 +1,7 @@
 using GroupOrderManager.Application.Auth;
+using GroupOrderManager.Application.Common.Exceptions;
 using GroupOrderManager.Infrastructure.Persistence;
 using GroupOrderManager.Infrastructure.Services;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Xunit;
 
@@ -11,10 +11,7 @@ public class AuthServiceTests
 {
     private static AuthService CreateService(out GomDbContext dbContext)
     {
-        var options = new DbContextOptionsBuilder<GomDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-        dbContext = new GomDbContext(options);
+        dbContext = TestDb.Create();
 
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -42,13 +39,23 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task RegisterAsync_WithDuplicateEmail_ThrowsInvalidOperationException()
+    public async Task RegisterAsync_WithDuplicateEmail_ThrowsConflictException()
     {
         var service = CreateService(out _);
         await service.RegisterAsync(new RegisterRequest("dup@example.com", "Password123!"));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<ConflictException>(() =>
             service.RegisterAsync(new RegisterRequest("dup@example.com", "AnotherPassword1!")));
+    }
+
+    [Fact]
+    public async Task RegisterAsync_WithSameEmailInDifferentCase_ThrowsConflictException()
+    {
+        var service = CreateService(out _);
+        await service.RegisterAsync(new RegisterRequest("domi@example.com", "Password123!"));
+
+        await Assert.ThrowsAsync<ConflictException>(() =>
+            service.RegisterAsync(new RegisterRequest("  Domi@Example.COM ", "AnotherPassword1!")));
     }
 
     [Fact]
@@ -56,6 +63,17 @@ public class AuthServiceTests
     {
         var service = CreateService(out _);
         await service.RegisterAsync(new RegisterRequest("login@example.com", "Password123!"));
+
+        var result = await service.LoginAsync(new LoginRequest("login@example.com", "Password123!"));
+
+        Assert.False(string.IsNullOrWhiteSpace(result.Token));
+    }
+
+    [Fact]
+    public async Task LoginAsync_WithDifferentEmailCase_ReturnsToken()
+    {
+        var service = CreateService(out _);
+        await service.RegisterAsync(new RegisterRequest("Login@Example.com", "Password123!"));
 
         var result = await service.LoginAsync(new LoginRequest("login@example.com", "Password123!"));
 

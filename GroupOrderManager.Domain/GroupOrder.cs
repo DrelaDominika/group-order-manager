@@ -27,9 +27,19 @@ public class GroupOrder
     public void Close()
     {
         if (Status == GroupOrderStatus.Closed)
-            throw new InvalidOperationException("GroupOrder is already closed.");
+            throw new DomainException("GroupOrder is already closed.");
 
         Status = GroupOrderStatus.Closed;
+    }
+
+    /// <summary>
+    /// Guard used before anything changes the order's contents (adding items, joining, claiming).
+    /// A closed order is frozen.
+    /// </summary>
+    public void EnsureOpen()
+    {
+        if (Status == GroupOrderStatus.Closed)
+            throw new DomainException("This group order is closed.");
     }
 }
 

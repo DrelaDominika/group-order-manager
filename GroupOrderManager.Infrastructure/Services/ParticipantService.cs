@@ -1,3 +1,4 @@
+using GroupOrderManager.Application.Common.Exceptions;
 using GroupOrderManager.Application.Participants;
 using GroupOrderManager.Domain;
 using GroupOrderManager.Infrastructure.Persistence;
@@ -17,7 +18,9 @@ public class ParticipantService : IParticipantService
     {
         var groupOrder = await _dbContext.GroupOrders.FindAsync(request.GroupOrderId);
         if (groupOrder is null)
-            throw new InvalidOperationException($"GroupOrder {request.GroupOrderId} does not exist.");
+            throw new NotFoundException($"GroupOrder {request.GroupOrderId} was not found.");
+
+        groupOrder.EnsureOpen();
 
         var participant = new Participant(request.GroupOrderId, request.Name, request.ContactInfo);
 

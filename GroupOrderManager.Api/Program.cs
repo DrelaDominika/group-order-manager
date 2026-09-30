@@ -1,3 +1,4 @@
+using GroupOrderManager.Api;
 using GroupOrderManager.Application.Claims;
 using GroupOrderManager.Application.GroupOrderItems;
 using GroupOrderManager.Application.GroupOrders;
@@ -38,19 +39,24 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
+// Errors -> consistent ProblemDetails responses with the right status codes
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
 builder.Services.AddScoped<IGroupOrderService, GroupOrderService>();
 builder.Services.AddScoped<IGroupOrderItemService, GroupOrderItemService>();
 builder.Services.AddScoped<IParticipantService, ParticipantService>();
 builder.Services.AddScoped<IClaimService, ClaimService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
-// Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-builder.Services.AddScoped<IAuthService, AuthService>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// First in the pipeline, so it catches exceptions from everything after it.
+app.UseExceptionHandler();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -62,19 +68,18 @@ app.UseAuthorization();
 
 app.MapPost("/group-orders", async (CreateGroupOrderRequest request, IGroupOrderService service, ClaimsPrincipal user) =>
 {
-    var ownerId = Guid.Parse(user.FindFirst("sub")!.Value);
-    var id = await service.CreateAsync(request, ownerId);
+    var id = await service.CreateAsync(request, GetUserId(user));
     return Results.Created($"/group-orders/{id}", new { id });
 })
 .WithName("CreateGroupOrder")
 .RequireAuthorization();
 
-app.MapPost("/group-orders/{groupOrderId}/items", async (Guid groupOrderId, AddGroupOrderItemRequest request, IGroupOrderItemService service) =>
+app.MapPost("/group-orders/{groupOrderId}/items", async (Guid groupOrderId, AddGroupOrderItemRequest request, IGroupOrderItemService service, ClaimsPrincipal user) =>
 {
     if (groupOrderId != request.GroupOrderId)
         return Results.BadRequest("Route groupOrderId does not match request body.");
 
-    var id = await service.AddAsync(request);
+    var id = await service.AddAsync(request, GetUserId(user));
     return Results.Created($"/group-orders/{groupOrderId}/items/{id}", new { id });
 })
 .WithName("AddGroupOrderItem")
@@ -95,15 +100,8 @@ app.MapPost("/items/{itemId}/claims", async (Guid itemId, ClaimItemRequest reque
     if (itemId != request.GroupOrderItemId)
         return Results.BadRequest("Route itemId does not match request body.");
 
-    try
-    {
-        var id = await service.ClaimAsync(request);
-        return Results.Created($"/items/{itemId}/claims/{id}", new { id });
-    }
-    catch (InvalidOperationException ex)
-    {
-        return Results.Conflict(ex.Message);
-    }
+    var id = await service.ClaimAsync(request);
+    return Results.Created($"/items/{itemId}/claims/{id}", new { id });
 })
 .WithName("ClaimItem");
 
@@ -114,25 +112,25 @@ app.MapGet("/group-orders/{id}", async (Guid id, IGroupOrderService service) =>
 })
 .WithName("GetGroupOrder");
 
-app.MapPatch("/claims/{id}/paid", async (Guid id, IClaimService service) =>
+app.MapPatch("/claims/{id}/paid", async (Guid id, IClaimService service, ClaimsPrincipal user) =>
 {
-    await service.MarkAsPaidAsync(id);
+    await service.MarkAsPaidAsync(id, GetUserId(user));
     return Results.NoContent();
 })
 .WithName("MarkClaimPaid")
 .RequireAuthorization();
 
-app.MapPatch("/claims/{id}/unpaid", async (Guid id, IClaimService service) =>
+app.MapPatch("/claims/{id}/unpaid", async (Guid id, IClaimService service, ClaimsPrincipal user) =>
 {
-    await service.MarkAsUnpaidAsync(id);
+    await service.MarkAsUnpaidAsync(id, GetUserId(user));
     return Results.NoContent();
 })
 .WithName("MarkClaimUnpaid")
 .RequireAuthorization();
 
-app.MapPatch("/group-orders/{id}/close", async (Guid id, IGroupOrderService service) =>
+app.MapPatch("/group-orders/{id}/close", async (Guid id, IGroupOrderService service, ClaimsPrincipal user) =>
 {
-    await service.CloseAsync(id);
+    await service.CloseAsync(id, GetUserId(user));
     return Results.NoContent();
 })
 .WithName("CloseGroupOrder")
@@ -160,3 +158,7 @@ app.MapPost("/auth/login", async (LoginRequest request, IAuthService authService
 .WithName("Login");
 
 app.Run();
+
+// Reads the user id from the JWT "sub" claim. Only called from endpoints with RequireAuthorization(),
+// so the user is always authenticated with a token we issued — and every token we issue contains "sub".
+static Guid GetUserId(ClaimsPrincipal user) => Guid.Parse(user.FindFirst("sub")!.Value);

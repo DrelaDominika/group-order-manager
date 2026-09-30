@@ -26,12 +26,15 @@ public class GroupOrderItem
         QuantityClaimed = 0;
     }
 
-    public bool CanClaim(int quantity) => QuantityClaimed + quantity <= QuantityAvailable;
+    public bool CanClaim(int quantity) => quantity > 0 && QuantityClaimed + quantity <= QuantityAvailable;
 
     public Claim ClaimFor(Guid participantId, int quantity)
     {
+        // Validate everything first, then mutate — never leave the object half-changed.
+        if (quantity <= 0)
+            throw new ArgumentException("Quantity must be greater than zero.", nameof(quantity));
         if (!CanClaim(quantity))
-            throw new InvalidOperationException("Not enough quantity available to claim.");
+            throw new DomainException("Not enough quantity available to claim.");
 
         QuantityClaimed += quantity;
         return new Claim(participantId, Id, quantity);
