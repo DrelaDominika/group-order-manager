@@ -1,5 +1,7 @@
 # Group Order Manager API
 
+[![CI](https://github.com/DrelaDominika/group-order-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/DrelaDominika/group-order-manager/actions/workflows/ci.yml)
+
 A REST API for coordinating group-buy orders end to end — built as a .NET 10 backend portfolio project, with every design decision made to be defensible in an interview, not just functional.
 
 **The problem it solves:** someone organizing a group order (e.g. a K-pop group buy) needs to track who's paying for what, calculate who owes how much, and let participants claim items without needing an account. This API handles all of that.
@@ -21,7 +23,7 @@ A REST API for coordinating group-buy orders end to end — built as a .NET 10 b
 - **ASP.NET Core Web API** (.NET 10, Minimal APIs)
 - **Entity Framework Core** + **PostgreSQL**
 - **xUnit** — 44 tests: domain rules, plus service tests (auth, ownership, closed orders, claims) using EF Core's in-memory provider
-- **Docker & Docker Compose** — containerized API + Postgres, runs with a single `docker compose up`
+- **Docker & Docker Compose** — containerized API + Postgres (`docker compose up --build`); the database schema is created separately with `dotnet ef database update` (migrations are not applied automatically on startup)
 - **GitHub Actions CI** — restores, builds, and runs all tests on every push
 - **JWT Bearer authentication** (HMAC-SHA256)
 
@@ -81,6 +83,17 @@ Business rules never depend on how they're persisted or exposed. `GroupOrderItem
    dotnet test
    ```
 
+   **Alternative: Docker Compose** — `docker compose up --build` starts PostgreSQL and the API (http://localhost:8080). PostgreSQL is published on port 5432, so apply the migrations from step 3 against it with the connection string from `docker-compose.yml`.
+
+## Testing
+
+`dotnet test` runs 44 xUnit tests, split into two layers:
+
+- **Domain tests** — plain unit tests for the business rules (for example the claim-quantity invariant in `GroupOrderItem.ClaimFor()`), with no I/O.
+- **Service tests** — auth, ownership, closed orders and claims, run against EF Core's in-memory provider so they are fast and need no database.
+
+**What these tests do not cover:** the in-memory provider is not PostgreSQL. It does not exercise PostgreSQL-specific behaviour such as the `xmin` concurrency token or relational constraints, so the concurrent-claim conflict (409) is not verified by a real database race. Integration tests against a real PostgreSQL instance (Testcontainers) are on the roadmap.
+
 ## API Endpoints
 
 | Method | Endpoint | Auth | Description |
@@ -106,4 +119,5 @@ Key architectural choices — aggregate root pattern, dependency inversion betwe
 - [ ] Frontend (React/Next.js)
 - [x] Docker Compose for full-stack local dev
 - [x] CI/CD via GitHub Actions
+- [ ] Integration tests against real PostgreSQL (Testcontainers)
 - [ ] Deployment to AWS
